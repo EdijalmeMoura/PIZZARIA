@@ -84,10 +84,19 @@ async function render(pathname) {
   window.addEventListener("error", (e) => errs.push(String(e.message)));
   window.eval(code);
 
-  const text = () => window.document.body.textContent || "";
+  const text = () => {
+    const root = window.document.querySelector("#root")?.cloneNode(true);
+    root?.querySelectorAll("style, script").forEach((node) => node.remove());
+    return root?.textContent || "";
+  };
   for (let i = 0; i < 60; i++) {
     await sleep(100);
-    if (!text().includes("ACENDENDO O FORNO") && text().length > 40) break;
+    const current = text();
+    if (
+      current.length > 40 &&
+      !current.includes("ACENDENDO O FORNO") &&
+      !/Carregando(?:\s|…)/i.test(current)
+    ) break;
   }
   await sleep(250);
   return { window, text, errs, pathname: () => window.location.pathname };
@@ -160,19 +169,13 @@ console.log("\n4) Área do entregador — aceite de corrida no /entregador");
     headers: { "Content-Type": "application/json", ...(opts.headers || {}), ...(cookie ? { cookie } : {}) },
   });
 
-  const anon = await fetch(`${BASE}/api/bootstrap`).then((r) => r.json());
-  const produto = anon.products.find((x) => x.active !== 0) || anon.products[0];
-  const minimo = Math.max(1, Math.ceil((anon.settings?.min_order || 25) / (produto.price || produto.preco || 10)));
-  const criado = await fetch(`${BASE}/api/orders`, {
+  // Usa pedido externo autenticado para validar a operação da equipe sem
+  // abrir o recebimento direto de clientes fora do horário configurado.
+  cookie = "";
+  await apiLogin("admin", "admin123");
+  const criado = await asUser("/api/orders/external", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      channel: "DIRECT",
-      type: "delivery",
-      payment: "Dinheiro",
-      customer: { name: "Cliente de Teste", phone: "(81) 99000-7777", addr: "Endereço de demonstração" },
-      items: [{ productId: produto.id, qty: minimo }],
-    }),
+    body: JSON.stringify({ channel: "IFOOD" }),
   });
   const corpo = await criado.json();
   const oid = corpo?.order?.id;
@@ -192,7 +195,7 @@ console.log("\n4) Área do entregador — aceite de corrida no /entregador");
     // a expedição libera a corrida para retirada pelo motoboy
     cookie = "";
     await apiLogin("expedicao", "expedicao123");
-    const liberado = await asUser(`/api/orders/${oid}/status`, { method: "PATCH", body: JSON.stringify({ status: "AGUARDANDO" }) });
+    const liberado = await asUser(`/api/orders/${oid}/status`, { method: "PATCH", body: JSON.stringify({ status: "AGUARDANDO", payment: "Dinheiro" }) });
     ok("expedição libera o pedido para entrega", liberado.status === 200, `HTTP ${liberado.status}`);
 
     cookie = "";

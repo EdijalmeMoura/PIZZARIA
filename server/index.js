@@ -495,7 +495,12 @@ app.post("/api/orders", idempotencyMiddleware, rateLimit({ windowMs: 60000, max:
   }
 
   if (!isStaffChannel && !settings.open) {
-    return res.status(409).json({ error: "A loja está fechada agora. Voltamos às 18h!" });
+    const reason = !settings.manualOpen
+      ? "Os pedidos estão pausados temporariamente pela loja."
+      : settings.nextOpening?.text
+        ? `A loja reabre ${settings.nextOpening.text}.`
+        : "Os horários de funcionamento ainda não foram configurados.";
+    return res.status(409).json({ error: `A loja está fechada agora. ${reason}` });
   }
 
   let body;
@@ -2147,7 +2152,17 @@ app.patch("/api/inventory/:id", requireRole("ADMIN", "GERENTE"), (req, res) => {
 
 app.patch("/api/settings", requireRole("ADMIN", "GERENTE"), (req, res) => {
   const b = req.body || {};
+  let weeklyHours;
+  if (b.weekly_hours !== undefined) {
+    try {
+      weeklyHours = validateSettings({ weekly_hours: b.weekly_hours }).weekly_hours;
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+  }
+
   if (typeof b.open === "boolean") setSetting("open", b.open ? "1" : "0");
+  if (weeklyHours) setSetting("weekly_hours", JSON.stringify(weeklyHours));
 
   // Configurações da Loja
   if (typeof b.store_name === "string" && b.store_name.trim()) setSetting("store_name", b.store_name.trim().slice(0, 80));

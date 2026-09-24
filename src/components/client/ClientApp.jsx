@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { getClosedStoreMessage } from "../../../shared/businessHours.js";
 import { C, font, STATUS, FLOW, CHANNELS } from "../../constants/theme.js";
 import { brl, elapsed, fmtDT, fmtShort, toLocalInput, fromLocalInput, lastSeen, esc, channelName } from "../../utils/format.js";
 import { api } from "../../utils/api.js";
@@ -259,7 +260,7 @@ function Hero({ store, onOrder }) {
           <div className="flex items-center gap-2 px-3 py-2 rounded-full shrink-0" style={{ background: `${C.gray900}dd`, border: `1px solid ${store.open ? `${C.green}55` : `${C.red}66`}` }}>
             <span style={{ width: 8, height: 8, borderRadius: 99, background: store.open ? C.green : C.red, display: "inline-block", animation: "sarropulse 1.8s infinite" }} />
             <span style={{ fontSize: 11, fontWeight: 800, color: store.open ? C.green : C.red, whiteSpace: "nowrap" }}>
-              {store.open ? "Aberto agora" : "Fechado"}
+              {store.open ? "Aberto agora" : store.manualOpen === false ? "Pedidos pausados" : "Fechado"}
             </span>
           </div>
         </header>
@@ -501,6 +502,10 @@ function HomeScreen({ store, onOpen, goMenu }) {
 
 function CartScreen({ store, goCheckout, onOpen }) {
   const { cart } = store;
+  const closedMessage = store.closedMessage || getClosedStoreMessage(store.businessHours || {
+    manualOpen: store.manualOpen !== false,
+    nextOpening: store.settings?.nextOpening,
+  });
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
 
@@ -639,7 +644,7 @@ function CartScreen({ store, goCheckout, onOpen }) {
 
       <div className="mt-4">
         <Btn full onClick={() => goCheckout({ subtotal, fee, discount, total })} disabled={!store.open}>
-          {store.open ? "FINALIZAR PEDIDO" : "LOJA FECHADA — VOLTAMOS ÀS 18H"}
+          {store.open ? "FINALIZAR PEDIDO" : closedMessage}
         </Btn>
       </div>
     </div>
@@ -825,6 +830,10 @@ function ProductModal({ p, store, onClose, onAdd }) {
 }
 
 function Checkout({ store, totals, onBack, onDone }) {
+  const closedMessage = store.closedMessage || getClosedStoreMessage(store.businessHours || {
+    manualOpen: store.manualOpen !== false,
+    nextOpening: store.settings?.nextOpening,
+  });
   const [step, setStep] = useState(1);
   const [f, setF] = useState({
     name: "", phone: "", cpf: "", type: "delivery",
@@ -1003,8 +1012,8 @@ function Checkout({ store, totals, onBack, onDone }) {
       )}
 
       <div className="mt-6">
-        <Btn full disabled={!valid[step]} onClick={() => (step === 5 ? finish() : setStep(step + 1))}>
-          {step === 5 ? `CONFIRMAR PEDIDO · ${brl(total)}` : "Continuar"}
+        <Btn full disabled={!valid[step] || (step === 5 && !store.open)} onClick={() => (step === 5 ? finish() : setStep(step + 1))}>
+          {step === 5 ? (store.open ? `CONFIRMAR PEDIDO · ${brl(total)}` : closedMessage) : "Continuar"}
         </Btn>
       </div>
     </div>

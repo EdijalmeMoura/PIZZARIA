@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import QRCode from "qrcode";
 import { getOrderModality as getOrderModalityUtil } from "./utils/orderModality.js";
+import { DEFAULT_WEEKLY_HOURS, getBusinessHoursStatus, getClosedStoreMessage } from "../shared/businessHours.js";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { extractTableNumber, getOrderTableNumber, buildMesaIndex } from "./utils/mesa.js";
 import ServiceChargeCard from "./components/admin/ServiceChargeCard.jsx";
@@ -1050,7 +1051,7 @@ function Hero({ store, onOrder }) {
           <div className="flex items-center gap-2 px-3 py-2 rounded-full shrink-0" style={{ background: `${C.gray900}dd`, border: `1px solid ${store.open ? `${C.green}55` : `${C.red}66`}` }}>
             <span style={{ width: 8, height: 8, borderRadius: 99, background: store.open ? C.green : C.red, display: "inline-block", animation: "sarropulse 1.8s infinite" }} />
             <span style={{ fontSize: 11, fontWeight: 800, color: store.open ? C.green : C.red, whiteSpace: "nowrap" }}>
-              {store.open ? "Aberto agora" : "Fechado"}
+              {store.open ? "Aberto agora" : store.manualOpen === false ? "Pedidos pausados" : "Fechado"}
             </span>
           </div>
         </header>
@@ -1460,7 +1461,7 @@ function CartScreen({ store, goCheckout, onOpen }) {
 
       <div className="mt-4">
         <Btn full onClick={() => goCheckout({ subtotal, fee, discount, total })} disabled={!store.open}>
-          {store.open ? "FINALIZAR PEDIDO" : "LOJA FECHADA — VOLTAMOS ÀS 18H"}
+          {store.open ? "FINALIZAR PEDIDO" : store.closedMessage}
         </Btn>
       </div>
     </div>
@@ -1694,6 +1695,7 @@ function Choice({ on, onClick, icon, title, sub }) {
 }
 
 function Checkout({ store, totals, onBack, onDone }) {
+  const closedMessage = store.closedMessage || getClosedStoreMessage(store.businessHours);
   const [step, setStep] = useState(1);
   const [f, setF] = useState({
     name: "", phone: "", cpf: "", type: "delivery",
@@ -1872,8 +1874,8 @@ function Checkout({ store, totals, onBack, onDone }) {
       )}
 
       <div className="mt-6">
-        <Btn full disabled={!valid[step]} onClick={() => (step === 5 ? finish() : setStep(step + 1))}>
-          {step === 5 ? `CONFIRMAR PEDIDO · ${brl(total)}` : "Continuar"}
+        <Btn full disabled={!valid[step] || (step === 5 && !store.open)} onClick={() => (step === 5 ? finish() : setStep(step + 1))}>
+          {step === 5 ? (store.open ? `CONFIRMAR PEDIDO · ${brl(total)}` : closedMessage) : "Continuar"}
         </Btn>
       </div>
     </div>
@@ -3629,21 +3631,9 @@ function AdminPrinterCard({ store }) {
 
 function AdminStoreCard({ store }) {
   return (
-    <Card className="p-4">
-      <div style={{ color: C.white, fontWeight: 900, fontSize: 14, marginBottom: 4 }}>Loja</div>
-      <Row label="Nome"><Input v="Mil Grau Pizzaria" /></Row>
-      <Row label="WhatsApp"><Input v="(81) 99999-0000" w={140} /></Row>
-      <Row label="Endereço"><Input v="Endereço da pizzaria" /></Row>
-      <Row label="Horário"><Input v="A definir" w={180} /></Row>
-      <Row label="Taxa de entrega"><Input v="7,90" w={80} /></Row>
-      <Row label="Pedido mínimo"><Input v="25,00" w={80} /></Row>
-      <Row label="Tempo médio"><Input v="A definir" w={110} /></Row>
-      <Row label="Loja aberta">
-        <button onClick={() => store.setOpen(!store.open)} className="rounded-full" style={{ width: 44, height: 24, background: store.open ? C.green : C.gray700, position: "relative" }}>
-          <span style={{ position: "absolute", top: 3, left: store.open ? 23 : 3, width: 18, height: 18, borderRadius: 99, background: C.white, transition: "left .2s" }} />
-        </button>
-      </Row>
-    </Card>
+    <React.Suspense fallback={<Card className="p-4"><span style={{ color: "#888" }}>Carregando configurações da loja…</span></Card>}>
+      <AdminStoreCardModular store={store} />
+    </React.Suspense>
   );
 }
 
@@ -4479,7 +4469,14 @@ export default function App() {
   const [coupons, setCoupons] = useState([]);
   const [promos, setPromos] = useState([]);
   const [cashRegister, setCashRegister] = useState(null);
-  const [settings, setSettings] = useState({ open: true, fee: 7.9, minOrder: 35, eta: "A definir" });
+  const [settings, setSettings] = useState({
+    open: false,
+    manualOpen: true,
+    weeklyHours: DEFAULT_WEEKLY_HOURS,
+    fee: 7.9,
+    minOrder: 35,
+    eta: "A definir",
+  });
   const [catalog, setCatalog] = useState({ categories: [], optionGroups: [], builder: [] });
 
   const [cart, setCart] = useState(() => {
@@ -4653,6 +4650,12 @@ export default function App() {
     };
   }, [refreshAll]);
 
+  const businessHours = getBusinessHoursStatus(settings.weeklyHours, {
+    manualOpen: settings.manualOpen !== false,
+    now,
+  });
+  const closedMessage = getClosedStoreMessage(businessHours);
+
   const store = {
     role, tab, setTab, me,
     orders, products, inventory, drivers, customers, coupons, promos, settings,
@@ -4668,7 +4671,10 @@ export default function App() {
       setMyOrder(d.order);
       return d.order;
     },
-    open: settings.open,
+    open: businessHours.open,
+    manualOpen: businessHours.manualOpen,
+    businessHours,
+    closedMessage,
     fee: settings.fee,
 
     addItem: (item) => setCart((c) => [...c, item]),
@@ -4753,6 +4759,10 @@ export default function App() {
     },
 
     placeOrder: async (payload) => {
+      if (!businessHours.open) {
+        toast(closedMessage);
+        return false;
+      }
       try {
         const d = await api("/api/orders", { method: "POST", body: payload });
         const order = d.order;

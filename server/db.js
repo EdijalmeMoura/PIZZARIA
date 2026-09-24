@@ -15,6 +15,11 @@ import {
 } from "./data.js";
 import { generatePixBRCode } from "./payments/pix.js";
 import { runMigrationsSync } from "./migrations/index.js";
+import {
+  formatWeeklyHoursSummary,
+  getBusinessHoursStatus,
+  normalizeWeeklyHours,
+} from "../shared/businessHours.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Em produção (ex.: Render Disk), aponte DATA_DIR para o volume persistente
@@ -535,15 +540,30 @@ export function getSettings() {
   const rows = db.prepare("SELECT key, value FROM settings").all();
   const s = {};
   for (const r of rows) s[r.key] = r.value;
+
+  const weeklyHours = normalizeWeeklyHours(s.weekly_hours);
+  const manualOpen = s.open !== "0";
+  const businessHours = getBusinessHoursStatus(weeklyHours, { manualOpen });
+  const hoursSummary = formatWeeklyHoursSummary(weeklyHours);
+
   return {
     storeName: s.store_name,
-    open: s.open === "1",
+    // `open` remains the customer-facing, effective status. `manualOpen` is
+    // the separate pause switch controlled by the store team.
+    open: businessHours.open,
+    manualOpen,
+    scheduleOpen: businessHours.scheduledOpen,
+    openReason: businessHours.reason,
+    nextOpening: businessHours.nextOpening,
+    todayHours: businessHours.todayHours,
+    weeklyHours,
+    hours: hoursSummary,
+    hoursSummary,
     fee: parseFloat(s.fee),
     minOrder: parseFloat(s.min_order),
     eta: s.eta,
     whatsapp: s.whatsapp,
     address: s.address,
-    hours: s.hours,
     payHandle: s.pay_handle || "",
     appBaseUrl: s.app_base_url || "",
     pixKey: s.pix_key || "",
