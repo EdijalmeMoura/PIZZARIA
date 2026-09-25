@@ -2,7 +2,7 @@
 
 Aplicação full-stack para operação da Mil Grau Pizzaria: cardápio online, carrinho, checkout, acompanhamento do pedido, painel administrativo, cozinha, expedição, entregadores, caixa, relatórios, impressão térmica e sincronização em tempo real.
 
-A estrutura operacional foi trazida do projeto **Tô no Sarro** e retematizada para pizzaria. A identidade agora usa a marca Mil Grau fornecida como referência. O catálogo e os valores em `server/data.js` continuam demonstrativos e devem ser trocados pelo cardápio oficial antes de publicar.
+A estrutura operacional foi trazida do projeto **Tô no Sarro** e retematizada para pizzaria. A identidade visual segue a paleta aprovada da Mil Grau. O catálogo foi importado do cardápio público do WhatsMenu; itens sem preço visível ficam desativados até confirmação.
 
 ## Rodar localmente
 
@@ -55,10 +55,11 @@ Contas locais de demonstração: `admin` / `admin123`, `cozinha` / `cozinha123`,
 
 ## Cardápio e marca
 
-- **Catálogo temporário:** `server/data.js` — os nomes, descrições, preços, grupos e pedidos iniciais servem apenas para visualizar a interface. Substitua-os pelo cardápio da plataforma antes de vender.
-- **Loja:** cadastre nome final, endereço, WhatsApp, horário, taxa e prazo em Admin → Configurações → Loja & Operação.
+- **Catálogo importado:** `server/whatsmenuCatalog.js`, a partir de [whatsmenu.com.br/pizzariamilgrau](https://whatsmenu.com.br/pizzariamilgrau). São 98 itens, com descrições, preços e fotos públicas quando disponíveis. Os itens explicitamente indisponíveis no site permanecem desativados; os 9 itens sem preço visível aparecem como “Preço a confirmar” e não podem ser pedidos.
+- **Horários:** configurados a partir da mesma página, todos os dias das 17:45 às 23:45, no fuso `America/Recife`.
+- **Loja:** cadastre endereço, WhatsApp, taxa e prazo em Admin → Configurações → Loja & Operação.
 - **Logo:** `public/assets/mil-grau-logo.svg` e `public/assets/mil-grau-logo.png` são a versão completa (SVG e PNG transparente); `public/assets/mil-grau-mark.svg` é o símbolo compacto usado nos painéis e como favicon. São adaptações vetoriais feitas a partir da prévia anexada; o PNG original não ficou disponível no checkout para uma cópia pixel a pixel.
-- **Fotos do catálogo:** `public/img/products/`; imagens carregadas pelo Admin ficam em `server/data/uploads`.
+- **Imagens:** fotos públicas do WhatsMenu são vinculadas aos produtos quando disponíveis; fotos enviadas pelo Admin ficam em `server/data/uploads` e `public/img/products/` permanece como fallback.
 - **Paleta:** espresso `#130E0B`, vermelho tomate `#C33B2E`, verde manjericão `#8BA578` e creme `#FFF6E8`; o âmbar `#E9A94F` fica reservado a avisos e detalhes pontuais.
 
 O banco local fica em `server/data/pizzeria.db` (ignorado pelo Git). Para recriar a demonstração do zero, rode `npm run seed`.

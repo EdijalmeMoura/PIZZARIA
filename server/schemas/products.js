@@ -8,7 +8,7 @@ export const productSchema = z.object({
   ingredients: z.array(z.string().max(80)).max(20).optional().default([]),
   price: z.number().positive().max(1000),
   promo: z.number().positive().max(1000).nullable().optional(),
-  time: z.number().int().min(1).max(120).optional().default(15),
+  time: z.number().int().min(0).max(180).optional().default(0),
   stock: z.number().int().min(0).max(10000).optional().default(0),
   badges: z.array(z.string()).max(10).optional().default([]),
   groups: z.array(z.string()).max(20).optional().default([]),

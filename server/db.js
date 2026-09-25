@@ -370,13 +370,13 @@ export function seedIfEmpty() {
   });
 
   const insProd = db.prepare(`
-    INSERT INTO products (id, name, cat, emoji, description, ingredients, price, promo, time, badges, available, groups, stock, builder)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, cat, emoji, description, ingredients, price, promo, time, badges, available, groups, stock, builder, img)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   for (const p of PRODUCTS) {
     insProd.run(p.id, p.name, p.cat, p.emoji, p.desc, JSON.stringify(p.ingredients),
-      p.price, p.promo, p.time, JSON.stringify(p.badges), p.available,
-      JSON.stringify(p.groups), p.stock, p.builder);
+      p.price, p.promo, p.time, JSON.stringify(p.badges), p.available ? 1 : 0,
+      JSON.stringify(p.groups), p.stock, p.builder ? 1 : 0, p.img || null);
   }
 
   const insCust = db.prepare("INSERT INTO customers (id, name, phone, orders, spent, last, tier, addr, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -406,12 +406,12 @@ export function seedIfEmpty() {
   const byId = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));
   const t0 = Date.now();
   const demo = [
-    ["Marina Costa", "(81) 98877-1020", "Endereço de demonstração", "IFOOD", "NOVO", 4, "Cartão (iFood)", "delivery", [["p1", 2]], 0],
-    ["João Silva", "(81) 99123-4567", "Endereço de demonstração", "DIRECT", "PREPARO", 9, "PIX", "delivery", [["p2", 1], ["p7", 1]], 0],
-    ["Pedro Henrique", "(81) 99555-3311", "Retirada na loja", "WHATSAPP", "PRONTO", 14, "Dinheiro", "pickup", [["p3", 1]], 0],
-    ["Ana Beatriz", "(81) 98220-7744", "Endereço de demonstração", "NNFOOD", "AGUARDANDO", 19, "Cartão (99Food)", "delivery", [["p4", 1], ["p7", 1]], 0],
-    ["Carlos Mendes", "(81) 99801-4455", "Endereço de demonstração", "DIRECT", "ROTA", 27, "PIX", "delivery", [["p5", 1], ["p6", 1]], 2],
-    ["Lucas Andrade", "(81) 99333-1200", "Endereço de demonstração", "DIRECT", "ENTREGUE", 52, "Cartão", "delivery", [["p8", 1]], 2],
+    ["Marina Costa", "(81) 98877-1020", "Endereço de demonstração", "IFOOD", "NOVO", 4, "Cartão (iFood)", "delivery", [["wm-classico-burguer", 2]], 0],
+    ["João Silva", "(81) 99123-4567", "Endereço de demonstração", "DIRECT", "PREPARO", 9, "PIX", "delivery", [["wm-x-bacon", 1], ["wm-agua-500ml", 1]], 0],
+    ["Pedro Henrique", "(81) 99555-3311", "Retirada na loja", "WHATSAPP", "PRONTO", 14, "Dinheiro", "pickup", [["wm-mad-max-burguer", 1]], 0],
+    ["Ana Beatriz", "(81) 98220-7744", "Endereço de demonstração", "NNFOOD", "AGUARDANDO", 19, "Cartão (99Food)", "delivery", [["wm-x-calabresa", 1], ["wm-h2o", 1]], 0],
+    ["Carlos Mendes", "(81) 99801-4455", "Endereço de demonstração", "DIRECT", "ROTA", 27, "PIX", "delivery", [["wm-clone-de-pizzas", 1], ["wm-bolo-chocolate-fatia", 1]], 2],
+    ["Lucas Andrade", "(81) 99333-1200", "Endereço de demonstração", "DIRECT", "ENTREGUE", 52, "Cartão", "delivery", [["wm-mil-grau-burguer", 1]], 2],
   ];
   demo.forEach(([name, phone, addr, channel, status, minsAgo, payment, type, prods, driverIdx], i) => {
     const oid = `seed-o${i + 1}`;

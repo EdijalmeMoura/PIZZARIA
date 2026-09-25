@@ -27,7 +27,7 @@ export function Logo({ size = 44, glow = false, style = {}, withText = false }) 
 export function SmartImg({ id, emoji, alt = "", fs = 34, className = "", style = {}, file, v = 0 }) {
   const [stage, setStage] = useState(0);
   useEffect(() => setStage(0), [file, id, v]);
-  const srcFile = file ? `/img-up/${file}?v=${v}` : null;
+  const srcFile = file ? (/^https?:\/\//i.test(file) ? file : `/img-up/${file}?v=${v}`) : null;
   const srcFallback = `${IMG_BASE}/${id}.jpg?v=${v}`;
   const src = stage === 0 && srcFile ? srcFile : srcFallback;
   if (stage >= 2) {

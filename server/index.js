@@ -2002,7 +2002,7 @@ function productPatch(body, { partial = true } = {}) {
     if (b.emoji !== undefined) patch.emoji = String(b.emoji ?? "🍕").slice(0, 8) || "🍕";
     if (b.time !== undefined) {
       const v = Math.floor(Number(b.time));
-      req(Number.isFinite(v) && v >= 1 && v <= 180, "Tempo de preparo inválido.");
+      req(Number.isFinite(v) && v >= 0 && v <= 180, "Tempo de preparo inválido.");
       patch.time = v;
     }
     if (b.badges !== undefined) {
@@ -2033,6 +2033,9 @@ const touchProduct = (id) => db.prepare("UPDATE products SET updated_at = ? WHER
 app.post("/api/products", requireRole("ADMIN", "GERENTE"), (req, res) => {
   const { patch, error } = productPatch(req.body, { partial: false });
   if (error) return res.status(400).json({ error });
+  if ((patch.available ?? 1) && patch.price <= 0) {
+    return res.status(400).json({ error: "Informe um preço antes de disponibilizar o produto." });
+  }
   const id = "p" + crypto.randomBytes(4).toString("hex");
   db.prepare(`
     INSERT INTO products (id, name, cat, emoji, description, ingredients, price, promo, time, badges, available, groups, stock, builder)
@@ -2055,6 +2058,10 @@ app.patch("/api/products/:id", requireRole("ADMIN", "GERENTE"), (req, res) => {
   if (!keys.length) return res.status(400).json({ error: "Nada para atualizar." });
 
   const price = patch.price ?? p.price;
+  const willBeAvailable = patch.available !== undefined ? Boolean(patch.available) : Boolean(p.available);
+  if (willBeAvailable && price <= 0) {
+    return res.status(400).json({ error: "Informe um preço antes de disponibilizar o produto." });
+  }
   const promo = patch.promo !== undefined ? patch.promo : p.promo;
   if (promo != null && promo >= price) {
     return res.status(400).json({ error: "O preço promocional precisa ser menor que o preço normal." });

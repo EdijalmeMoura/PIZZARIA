@@ -91,12 +91,21 @@ const CHANNELS = {
 };
 
 const CATEGORIES = [
-  { id: "tradicionais", label: "Tradicionais", icon: "🍕" },
-  { id: "especiais", label: "Especiais", icon: "🔥" },
-  { id: "doces", label: "Pizzas doces", icon: "🍫" },
-  { id: "combos", label: "Combos", icon: "🥤" },
+  { id: "pizzas-grandes", label: "Pizzas grandes", icon: "🍕" },
+  { id: "combos-pizzas", label: "Combos de pizza", icon: "🍕" },
+  { id: "hamburgueres-artesanais", label: "Hambúrgueres artesanais", icon: "🍔" },
+  { id: "hamburgueres-tradicionais", label: "Hambúrgueres tradicionais", icon: "🍔" },
+  { id: "combos-do-dia", label: "Combos do dia", icon: "🍟" },
+  { id: "batata-frita", label: "Batata frita", icon: "🍟" },
+  { id: "salgados", label: "Salgados", icon: "🥟" },
+  { id: "outros", label: "Outros", icon: "🍽️" },
+  { id: "sobremesas", label: "Sobremesas", icon: "🍰" },
   { id: "bebidas", label: "Bebidas", icon: "🥤" },
-  { id: "promocoes", label: "Promoções", icon: "✨" },
+  { id: "sucos", label: "Sucos", icon: "🧃" },
+  { id: "sucos-com-leite", label: "Sucos com leite", icon: "🥛" },
+  { id: "pasteis-simples", label: "Pastéis simples", icon: "🥟" },
+  { id: "pasteis-especiais", label: "Pastéis especiais", icon: "🥟" },
+  { id: "pasteis-doces", label: "Pastéis doces", icon: "🍫" },
 ];
 
 const INTEGRATIONS = [
@@ -576,7 +585,7 @@ function Logo({ size = 44, glow = false, style = {}, withText = false }) {
 function SmartImg({ id, emoji, alt = "", fs = 34, className = "", style = {}, file, v = 0 }) {
   const [stage, setStage] = useState(0);
   useEffect(() => setStage(0), [file, id, v]);
-  const srcFile = file ? `/img-up/${file}?v=${v}` : null;
+  const srcFile = file ? (/^https?:\/\//i.test(file) ? file : `/img-up/${file}?v=${v}`) : null;
   const srcFallback = `${IMG_BASE}/${id}.jpg?v=${v}`;
   const src = stage === 0 && srcFile ? srcFile : srcFallback;
 
@@ -1098,7 +1107,7 @@ function ProductCard({ p, onOpen }) {
     <Card
       onClick={() => p.available && onOpen(p)}
       className="p-2.5 sm:p-3 flex gap-2.5 sm:gap-3 items-center group"
-      style={{ opacity: p.available ? 1 : 0.45, cursor: p.available ? "pointer" : "not-allowed" }}
+      style={{ opacity: p.available ? 1 : 0.55, cursor: p.available ? "pointer" : "not-allowed" }}
     >
       <div
         className="shrink-0 rounded-xl overflow-hidden sarro-imgzoom"
@@ -1108,6 +1117,7 @@ function ProductCard({ p, onOpen }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap mb-1">
+          {!p.available && <Badge color={C.yellow} text={C.black}>{price > 0 ? "INDISPONÍVEL" : "PREÇO PENDENTE"}</Badge>}
           {p.badges.includes("maisvendido") && <Badge color={C.yellow}>MAIS VENDIDO</Badge>}
           {p.badges.includes("novidade") && <Badge color={C.white}>NOVIDADE</Badge>}
           {p.badges.includes("promocao") && <Badge color={C.red} text={C.white}>PROMO</Badge>}
@@ -1117,18 +1127,20 @@ function ProductCard({ p, onOpen }) {
           {p.desc}
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 flex-wrap">
-          <span style={{ color: C.yellowLight, fontWeight: 900, fontSize: "clamp(13px, 3.6vw, 15px)" }}>{brl(price)}</span>
+          <span style={{ color: C.yellowLight, fontWeight: 900, fontSize: "clamp(13px, 3.6vw, 15px)" }}>{price > 0 ? brl(price) : "Preço a confirmar"}</span>
           {p.promo && <span style={{ color: "#6e6e6e", fontSize: 11, textDecoration: "line-through" }}>{brl(p.price)}</span>}
-          <span style={{ color: "#6e6e6e", fontSize: 10 }}>• {p.time} min</span>
+          {p.time > 0 && <span style={{ color: "#6e6e6e", fontSize: 10 }}>• {p.time} min</span>}
         </div>
       </div>
-      <button
-        className="shrink-0 rounded-xl flex items-center justify-center font-black active:scale-90 transition group-active:scale-95"
-        style={{ width: "clamp(36px, 10vw, 40px)", height: "clamp(36px, 10vw, 40px)", background: C.orange, color: C.white, fontSize: 22, lineHeight: 1 }}
-        aria-label={`Adicionar ${p.name}`}
-      >
-        +
-      </button>
+      {p.available ? (
+        <button
+          className="shrink-0 rounded-xl flex items-center justify-center font-black active:scale-90 transition group-active:scale-95"
+          style={{ width: "clamp(36px, 10vw, 40px)", height: "clamp(36px, 10vw, 40px)", background: C.orange, color: C.white, fontSize: 22, lineHeight: 1 }}
+          aria-label={`Adicionar ${p.name}`}
+        >
+          +
+        </button>
+      ) : <span aria-hidden="true" style={{ color: C.yellow, fontSize: 22, fontWeight: 800, padding: "0 10px" }}>–</span>}
     </Card>
   );
 }
@@ -1159,11 +1171,14 @@ function smartSearch(q, products) {
 
 
 function MenuScreen({ store, onOpen }) {
-  const [cat, setCat] = useState("tradicionais");
+  const [cat, setCat] = useState("");
   const [q, setQ] = useState("");
   const refs = useRef({});
-
-  const results = smartSearch(q, store.products);
+  const publicProducts = store.products.filter((p) => p.cat !== "arquivo");
+  const menuCategories = (store.categories?.length ? store.categories : CATEGORIES)
+    .filter((c) => c.id !== "arquivo" && publicProducts.some((p) => p.cat === c.id));
+  const activeCat = menuCategories.some((c) => c.id === cat) ? cat : menuCategories[0]?.id;
+  const results = smartSearch(q, publicProducts);
   const searching = q.trim().length > 0;
 
   const go = (id) => {
@@ -1173,8 +1188,8 @@ function MenuScreen({ store, onOpen }) {
 
   const byCat = (id) =>
     id === "promocoes"
-      ? store.products.filter((p) => p.promo)
-      : store.products.filter((p) => p.cat === id);
+      ? publicProducts.filter((p) => p.promo)
+      : publicProducts.filter((p) => p.cat === id);
 
   return (
     <div>
@@ -1183,7 +1198,7 @@ function MenuScreen({ store, onOpen }) {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Busque: “pizza de calabresa”, “borda recheada”, “pizza doce”…"
+            placeholder="Busque hambúrguer, pizza, pastel, bebida…"
             className="w-full rounded-2xl pl-10 pr-4 py-3 outline-none"
             style={{ background: C.gray850, border: `1px solid ${C.gray800}`, color: C.white, fontSize: 13 }}
           />
@@ -1192,8 +1207,8 @@ function MenuScreen({ store, onOpen }) {
 
         {!searching && (
           <div className="flex gap-2 overflow-x-auto pb-2 pt-3" style={{ scrollbarWidth: "none" }}>
-            {CATEGORIES.map((c) => {
-              const on = cat === c.id;
+            {menuCategories.map((c) => {
+              const on = activeCat === c.id;
               return (
                 <button
                   key={c.id}
@@ -1224,7 +1239,7 @@ function MenuScreen({ store, onOpen }) {
                 <div style={{ fontSize: 34 }}>🕵️</div>
                 <div style={{ color: C.white, fontWeight: 800, marginTop: 8 }}>Não achamos esse aqui</div>
                 <div style={{ color: "#8a8a8a", fontSize: 12.5, marginTop: 4 }}>
-                  Tente “calabresa”, “queijo”, “borda” ou escolha uma categoria.
+                  Tente outro nome ou escolha uma categoria.
                 </div>
               </Card>
             ) : (
@@ -1234,7 +1249,7 @@ function MenuScreen({ store, onOpen }) {
             )}
           </>
         ) : (
-          CATEGORIES.map((c) => {
+          menuCategories.map((c) => {
             const items = byCat(c.id);
             if (!items.length) return null;
             return (
@@ -1254,11 +1269,12 @@ function MenuScreen({ store, onOpen }) {
   );
 }
 
-
 function HomeScreen({ store, onOpen, goMenu }) {
-  const top = store.products.filter((p) => p.badges.includes("maisvendido"));
-  const promos = store.products.filter((p) => p.promo);
-  const novos = store.products.filter((p) => p.badges.includes("novidade"));
+  const publicProducts = store.products.filter((p) => p.cat !== "arquivo");
+  const top = publicProducts.filter((p) => p.available && p.badges.includes("maisvendido"));
+  const promos = publicProducts.filter((p) => p.available && p.promo);
+  const novos = publicProducts.filter((p) => p.available && p.badges.includes("novidade"));
+  const builderProduct = publicProducts.find((p) => p.available && p.builder);
 
   const Row = ({ title, sub, items }) => (
     <div className="pt-6">
@@ -1289,20 +1305,22 @@ function HomeScreen({ store, onOpen, goMenu }) {
     <div className="pb-6">
       <Hero store={store} onOrder={goMenu} />
 
-      <div className="px-4 -mt-4 relative z-10">
-        <Card className="p-4 flex items-center gap-3" style={{ borderColor: `${C.orange}55` }}>
-          <div className="rounded-xl overflow-hidden shrink-0 sarro-imgzoom" style={{ width: 50, height: 50, border: `1px solid ${C.orange}55` }}>
-            <SmartImg id="p8" emoji="🍕" alt="Monte sua pizza" fs={24} />
-          </div>
-          <div className="flex-1">
-            <div style={{ color: C.white, fontWeight: 900, fontSize: 14 }}>Monte sua pizza</div>
-            <div style={{ color: "#9a9a9a", fontSize: 11.5 }}>Escolha o tamanho, a massa e a base</div>
-          </div>
-          <Btn small onClick={() => { const builder = store.products.find((p) => p.builder); if (builder) onOpen(builder); }}>Montar</Btn>
-        </Card>
-      </div>
+      {builderProduct && (
+        <div className="px-4 -mt-4 relative z-10">
+          <Card className="p-4 flex items-center gap-3" style={{ borderColor: `${C.orange}55` }}>
+            <div className="rounded-xl overflow-hidden shrink-0 sarro-imgzoom" style={{ width: 50, height: 50, border: `1px solid ${C.orange}55` }}>
+              <SmartImg id={builderProduct.id} emoji={builderProduct.emoji} alt={builderProduct.name} fs={24} file={builderProduct.img} v={builderProduct.updatedAt} />
+            </div>
+            <div className="flex-1">
+              <div style={{ color: C.white, fontWeight: 900, fontSize: 14 }}>{builderProduct.name}</div>
+              <div style={{ color: "#9a9a9a", fontSize: 11.5 }}>{builderProduct.desc}</div>
+            </div>
+            <Btn small onClick={() => onOpen(builderProduct)}>Montar</Btn>
+          </Card>
+        </div>
+      )}
 
-      <Row title="🍕 AS FAVORITAS DA CASA" sub="Sabores para deixar a noite melhor" items={top} />
+      {top.length > 0 && <Row title="🍕 AS FAVORITAS DA CASA" sub="Sabores para deixar a noite melhor" items={top} />}
       {promos.length > 0 && <Row title="✨ OFERTAS DO FORNO" sub="Confira os destaques do cardápio" items={promos} />}
       {novos.length > 0 && <Row title="🌿 NOVIDADES" sub="Mais sabores para descobrir" items={novos} />}
 
@@ -1349,8 +1367,8 @@ function CartScreen({ store, goCheckout, onOpen }) {
   };
 
   const upsell = store.products
-    .filter((p) => ["doces", "bebidas", "combos"].includes(p.cat))
-    .filter((p) => !cart.find((i) => i.productId === p.id))
+    .filter((p) => p.available && ["sobremesas", "bebidas", "combos-pizzas", "sucos"].includes(p.cat))
+    .filter((p) => p.cat !== "arquivo" && !cart.find((i) => i.productId === p.id))
     .slice(0, 4);
 
   if (!cart.length) {
@@ -2491,12 +2509,12 @@ function ProductForm({ initial, store, onClose }) {
     price: String(initial.price).replace(".", ","),
     promoOn: initial.promo != null,
     promo: initial.promo != null ? String(initial.promo).replace(".", ",") : "",
-    time: String(initial.time ?? 15), stock: String(initial.stock ?? 0),
+    time: String(initial.time || ""), stock: String(initial.stock ?? ""),
     badges: initial.badges || [], groups: initial.groups || [],
     available: initial.available, builder: initial.builder,
   } : {
-    name: "", cat: "tradicionais", emoji: "🍕", description: "", ingredients: "",
-    price: "", promoOn: false, promo: "", time: "15", stock: "0",
+    name: "", cat: "pizzas-grandes", emoji: "🍕", description: "", ingredients: "",
+    price: "", promoOn: false, promo: "", time: "", stock: "",
     badges: [], groups: [], available: true, builder: false,
   }));
   const [file, setFile] = useState(null);
@@ -2532,7 +2550,7 @@ function ProductForm({ initial, store, onClose }) {
         description: f.description.trim(),
         ingredients: f.ingredients.split("\n").map((s) => s.trim()).filter(Boolean),
         price, promo: f.promoOn ? promo : null,
-        time: Math.max(1, parseInt(f.time) || 15),
+        time: f.time.trim() ? Math.max(1, parseInt(f.time) || 1) : 0,
         stock: Math.max(0, parseInt(f.stock) || 0),
         badges: f.badges, groups: f.groups,
         available: f.available, builder: f.builder,
@@ -2642,14 +2660,14 @@ function ProductForm({ initial, store, onClose }) {
               </label>
             )}
             <label className="block">
-              <span style={{ color: "#9a9a9a", fontSize: 11, fontWeight: 700 }}>Preparo (min)</span>
+              <span style={{ color: "#9a9a9a", fontSize: 11, fontWeight: 700 }}>Preparo (min, opcional)</span>
               <input value={f.time} onChange={(e) => set("time", e.target.value)} inputMode="numeric"
-                className="w-full rounded-xl px-3 py-2.5 mt-1 outline-none" style={inField} />
+                className="w-full rounded-xl px-3 py-2.5 mt-1 outline-none" style={inField} placeholder="Não informado" />
             </label>
             <label className="block">
               <span style={{ color: "#9a9a9a", fontSize: 11, fontWeight: 700 }}>Estoque</span>
               <input value={f.stock} onChange={(e) => set("stock", e.target.value)} inputMode="numeric"
-                className="w-full rounded-xl px-3 py-2.5 mt-1 outline-none" style={inField} />
+                className="w-full rounded-xl px-3 py-2.5 mt-1 outline-none" style={inField} placeholder="Não informado" />
             </label>
           </div>
 
@@ -2752,11 +2770,11 @@ function AdminProducts({ store }) {
                   {p.name} {p.builder && <span style={{ color: C.orange, fontSize: 11 }}>🛠️</span>}
                 </div>
                 <div style={{ color: "#7a7a7a", fontSize: 11 }}>
-                  {store.categories.find((c) => c.id === p.cat)?.label} · {p.time} min · estoque {p.stock}
+                  {store.categories.find((c) => c.id === p.cat)?.label || "Sem categoria"} · {p.time > 0 ? `${p.time} min` : "tempo não informado"} · {p.stock != null ? `estoque ${p.stock}` : "estoque não informado"}
                 </div>
                 <div className="flex items-center gap-2">
                   <span style={{ color: C.yellowLight, fontWeight: 900, fontSize: 13.5, marginTop: 2 }}>
-                    {brl(p.promo || p.price)}
+                    {p.price > 0 ? brl(p.promo || p.price) : "Preço a confirmar"}
                   </span>
                   {p.promo && <span style={{ color: "#6e6e6e", fontSize: 10.5, textDecoration: "line-through" }}>{brl(p.price)}</span>}
                 </div>
@@ -2771,7 +2789,9 @@ function AdminProducts({ store }) {
               </div>
               <button
                 onClick={() => store.updateProduct(p.id, { available: !p.available })}
-                className="rounded-full"
+                disabled={p.price <= 0 && !p.available}
+                title={p.price <= 0 && !p.available ? "Informe o preço antes de disponibilizar" : undefined}
+                className="rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ width: 42, height: 23, background: p.available ? C.green : C.gray700, position: "relative", transition: "background .2s" }}
               >
                 <span

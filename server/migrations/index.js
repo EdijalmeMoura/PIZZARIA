@@ -35,8 +35,9 @@ import * as m002 from "./002_geo.js";
 import * as m003 from "./003_split_pay.js";
 import * as m004 from "./004_idempotency.js";
 import * as m005 from "./005_session_security.js";
+import * as m006 from "./006_whatsmenu_catalog.js";
 
-const MIGRATIONS = [m001, m002, m003, m004, m005];
+const MIGRATIONS = [m001, m002, m003, m004, m005, m006];
 
 export function runMigrationsSync(db) {
   db.exec(`

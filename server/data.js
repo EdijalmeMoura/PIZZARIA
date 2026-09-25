@@ -1,15 +1,7 @@
-// Catálogo demonstrativo da Pizzaria.
-// Os produtos e valores abaixo são placeholders visuais; serão substituídos
-// pelo cardápio oficial enviado pela loja.
+import { WHATS_MENU_CATEGORIES, WHATS_MENU_PRODUCTS, WHATS_MENU_WEEKLY_HOURS } from "./whatsmenuCatalog.js";
 
-export const CATEGORIES = [
-  { id: "tradicionais", label: "Tradicionais", icon: "🍕" },
-  { id: "especiais", label: "Especiais", icon: "🔥" },
-  { id: "doces", label: "Pizzas doces", icon: "🍫" },
-  { id: "combos", label: "Combos", icon: "🥤" },
-  { id: "bebidas", label: "Bebidas", icon: "🥤" },
-  { id: "promocoes", label: "Promoções", icon: "✨" },
-];
+// O catálogo de venda e os horários vêm do cardápio público oficial.
+export const CATEGORIES = WHATS_MENU_CATEGORIES;
 
 export const OPTION_GROUPS = [
   {
@@ -68,64 +60,7 @@ export const BUILDER = [
   },
 ];
 
-export const PRODUCTS = [
-  {
-    id: "p1", name: "Margherita", cat: "tradicionais", emoji: "🍕",
-    desc: "Molho de tomate, mozzarella, manjericão fresco e um fio de azeite.",
-    ingredients: ["Molho de tomate", "Mozzarella", "Manjericão fresco", "Azeite"],
-    price: 36.9, promo: null, time: 25, badges: ["maisvendido"], available: 1,
-    groups: ["tamanho", "borda", "adicionais"], stock: 40, builder: 0,
-  },
-  {
-    id: "p2", name: "Calabresa da Casa", cat: "tradicionais", emoji: "🍕",
-    desc: "Calabresa fatiada, mozzarella, cebola roxa e orégano.",
-    ingredients: ["Molho de tomate", "Mozzarella", "Calabresa", "Cebola roxa", "Orégano"],
-    price: 42.9, promo: 38.9, time: 25, badges: ["maisvendido", "promocao"], available: 1,
-    groups: ["tamanho", "borda", "adicionais"], stock: 32, builder: 0,
-  },
-  {
-    id: "p3", name: "Quatro Queijos", cat: "especiais", emoji: "🧀",
-    desc: "Mozzarella, provolone, gorgonzola e parmesão gratinados.",
-    ingredients: ["Molho de tomate", "Mozzarella", "Provolone", "Gorgonzola", "Parmesão"],
-    price: 46.9, promo: null, time: 28, badges: ["novidade"], available: 1,
-    groups: ["tamanho", "borda", "adicionais"], stock: 25, builder: 0,
-  },
-  {
-    id: "p4", name: "Portuguesa", cat: "tradicionais", emoji: "🍕",
-    desc: "Presunto, mozzarella, cebola, ovo, azeitonas e orégano.",
-    ingredients: ["Molho de tomate", "Mozzarella", "Presunto", "Cebola", "Ovo", "Azeitonas"],
-    price: 44.9, promo: null, time: 28, badges: [], available: 1,
-    groups: ["tamanho", "borda", "adicionais"], stock: 24, builder: 0,
-  },
-  {
-    id: "p5", name: "Frango com Catupiry", cat: "especiais", emoji: "🍕",
-    desc: "Frango desfiado bem temperado, mozzarella e Catupiry cremoso.",
-    ingredients: ["Molho de tomate", "Mozzarella", "Frango desfiado", "Catupiry", "Orégano"],
-    price: 46.9, promo: null, time: 28, badges: [], available: 1,
-    groups: ["tamanho", "borda", "adicionais"], stock: 22, builder: 0,
-  },
-  {
-    id: "p6", name: "Chocolate com Morango", cat: "doces", emoji: "🍫",
-    desc: "Chocolate cremoso, morangos frescos e massa douradinha.",
-    ingredients: ["Chocolate", "Morango fresco", "Massa artesanal"],
-    price: 39.9, promo: null, time: 18, badges: ["novidade"], available: 1,
-    groups: ["tamanho", "borda"], stock: 18, builder: 0,
-  },
-  {
-    id: "p7", name: "Refrigerante lata", cat: "bebidas", emoji: "🥤",
-    desc: "Lata gelada para acompanhar sua pizza.",
-    ingredients: ["Refrigerante em lata"],
-    price: 7.5, promo: null, time: 2, badges: [], available: 1,
-    groups: [], stock: 80, builder: 0,
-  },
-  {
-    id: "p8", name: "Monte sua Pizza", cat: "especiais", emoji: "🍕",
-    desc: "Escolha o tamanho, a massa e a base para criar sua combinação.",
-    ingredients: ["Ingredientes escolhidos por você"],
-    price: 36.9, promo: null, time: 30, badges: ["novidade"], available: 1,
-    groups: [], stock: 99, builder: 1,
-  },
-];
+export const PRODUCTS = WHATS_MENU_PRODUCTS;
 
 export const COUPONS = [
   { code: "PIZZA10", type: "percent", value: 10, min: 45, uses: 0, max_uses: 500, active: 1, note: "10% em pedidos acima de R$ 45" },
@@ -185,7 +120,8 @@ export const SETTINGS = {
   eta: "A definir",
   whatsapp: "",
   address: "",
-  hours: "A definir",
+  hours: "Seg–Dom 17:45–23:45",
+  weekly_hours: JSON.stringify(WHATS_MENU_WEEKLY_HOURS),
   seq: 1047,
   pay_handle: "",
   app_base_url: "",
