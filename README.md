@@ -59,7 +59,7 @@ Contas locais de demonstração: `admin` / `admin123`, `cozinha` / `cozinha123`,
 - **Loja:** cadastre nome final, endereço, WhatsApp, horário, taxa e prazo em Admin → Configurações → Loja & Operação.
 - **Logo:** `public/assets/mil-grau-logo.svg` e `public/assets/mil-grau-logo.png` são a versão completa (SVG e PNG transparente); `public/assets/mil-grau-mark.svg` é o símbolo compacto usado nos painéis e como favicon. São adaptações vetoriais feitas a partir da prévia anexada; o PNG original não ficou disponível no checkout para uma cópia pixel a pixel.
 - **Fotos do catálogo:** `public/img/products/`; imagens carregadas pelo Admin ficam em `server/data/uploads`.
-- **Paleta provisória:** espresso `#130E0B`, vermelho tomate `#C33B2E`, dourado `#E9A94F` e creme `#FFF6E8`.
+- **Paleta:** espresso `#130E0B`, vermelho tomate `#C33B2E`, verde manjericão `#8BA578` e creme `#FFF6E8`; o âmbar `#E9A94F` fica reservado a avisos e detalhes pontuais.
 
 O banco local fica em `server/data/pizzeria.db` (ignorado pelo Git). Para recriar a demonstração do zero, rode `npm run seed`.
 

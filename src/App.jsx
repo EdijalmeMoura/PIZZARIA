@@ -59,9 +59,9 @@ const C = {
   gray700: "#503B30",
   orange: "#C33B2E",
   yellow: "#E9A94F",
-  yellowLight: "#F4D49A",
+  yellowLight: "#F0E7D8",
   white: "#FFF6E8",
-  green: "#58A878",
+  green: "#8BA578",
   red: "#E75B4B",
   blue: "#68A9C5",
 };
@@ -71,7 +71,7 @@ const STATUS = {
   CONFIRMADO: { label: "Confirmado", color: C.yellow, icon: "✅" },
   PREPARO: { label: "No forno", color: C.orange, icon: "🔥" },
   PRONTO: { label: "Pronto", color: C.green, icon: "🍕" },
-  EMBALADO: { label: "Embalado", color: "#8FD14F", icon: "📦" },
+  EMBALADO: { label: "Embalado", color: C.green, icon: "📦" },
   AGUARDANDO: { label: "Aguardando entregador", color: C.blue, icon: "⏳" },
   ROTA: { label: "Saiu para entrega", color: "#7C5CFF", icon: "🛵" },
   ENTREGUE: { label: "Entregue", color: "#5a5a5a", icon: "✓" },
@@ -477,21 +477,21 @@ const css = `
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    color: #F4D49A;
+    color: #F0E7D8;
     background: rgba(195,59,46,.14);
-    border: 1px solid rgba(233,169,79,.25);
+    border: 1px solid rgba(139,165,120,.25);
     border-radius: 999px;
     padding: 8px 12px;
     font-size: 9px;
     font-weight: 900;
     letter-spacing: .18em;
   }
-  .pizza-eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #E9A94F; box-shadow: 0 0 12px #E9A94F88; }
+  .pizza-eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #8BA578; box-shadow: 0 0 12px #8BA57888; }
   .pizza-hero-visual {
     position: relative;
     min-height: clamp(300px, 37vw, 470px);
     overflow: hidden;
-    border: 1px solid rgba(244,212,154,.22);
+    border: 1px solid rgba(139,165,120,.22);
     border-radius: 18px 18px 110px 18px;
     background: #241A15;
     box-shadow: 0 28px 90px rgba(0,0,0,.48), 0 0 60px rgba(195,59,46,.13);
@@ -506,7 +506,7 @@ const css = `
     flex-direction: column;
     gap: 3px;
     padding: 12px 16px;
-    border-left: 2px solid #E9A94F;
+    border-left: 2px solid #8BA578;
     background: rgba(19,14,11,.62);
     backdrop-filter: blur(12px);
   }
