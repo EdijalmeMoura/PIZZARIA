@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { extractTableNumber, getOrderTableNumber, buildMesaIndex } from "./utils/mesa.js";
 import ServiceChargeCard from "./components/admin/ServiceChargeCard.jsx";
 import { BrandLogoProvider, useBrandLogo } from "./contexts/BrandLogoContext.jsx";
+import { studioProductPhotos } from "./utils/studioProductPhotos.js";
 // Lazy load heavy panels for code splitting
 const AdminTablesModular = React.lazy(() => import("./components/tables/AdminTables.jsx"));
 const TrackScreenModular = React.lazy(() => import("./components/track/TrackScreen.jsx"));
@@ -583,19 +584,28 @@ function Logo({ size = 44, glow = false, style = {}, withText = false }) {
   );
 }
 
-// Foto do produto com fallback para o emoji: enquanto a foto real não existir
-// (ou estiver carregando em conexão ruim), o card continua apresentável.
-// `file` = foto enviada pelo admin (servida em /img-up); sem ela usa a foto
-// padrão /img/products/<id>.jpg original do catálogo. NUNCA muda imagem, só fallback.
-// Se upload quebrar (Render sem Disk), cai para original p1.jpg..p16.jpg, só então emoji.
+// Fotos de estúdio geradas para o catálogo; fotos enviadas pelo admin têm prioridade,
+// depois vêm as imagens do estúdio, a foto de origem e os fallbacks tradicionais.
 function SmartImg({ id, emoji, alt = "", fs = 34, className = "", style = {}, file, v = 0 }) {
   const [stage, setStage] = useState(0);
   useEffect(() => setStage(0), [file, id, v]);
-  const srcFile = file ? (/^https?:\/\//i.test(file) ? file : `/img-up/${file}?v=${v}`) : null;
-  const srcFallback = `${IMG_BASE}/${id}.jpg?v=${v}`;
-  const src = stage === 0 && srcFile ? srcFile : srcFallback;
+  const isRemoteFile = typeof file === "string" && /^https?:\/\//i.test(file);
+  const srcFile = file
+    ? isRemoteFile
+      ? file
+      : file.startsWith("/")
+        ? `${file}${file.includes("?") ? "&" : "?"}v=${v}`
+        : `/img-up/${file}?v=${v}`
+    : null;
+  const hasAdminUpload = Boolean(file && !isRemoteFile && !file.startsWith("/img/products/studio/"));
+  const sources = [
+    ...(hasAdminUpload && srcFile ? [srcFile] : []),
+    ...(studioProductPhotos[id] ? [studioProductPhotos[id]] : []),
+    ...(!hasAdminUpload && srcFile ? [srcFile] : []),
+    `${IMG_BASE}/${id}.jpg?v=${v}`,
+  ];
 
-  if (stage >= 2) {
+  if (stage >= sources.length) {
     return (
       <span
         className={`flex items-center justify-center w-full h-full ${className}`}
@@ -607,17 +617,16 @@ function SmartImg({ id, emoji, alt = "", fs = 34, className = "", style = {}, fi
   }
   return (
     <img
-      src={src}
+      src={sources[stage]}
       alt={alt}
       loading="lazy"
       draggable={false}
-      onError={() => setStage((s) => (s === 0 && srcFile ? 1 : 2))}
+      onError={() => setStage((current) => Math.min(current + 1, sources.length))}
       className={`sarro-img ${className}`}
       style={style}
     />
   );
 }
-
 function Badge({ children, color = C.orange, text = C.black }) {
   return (
     <span

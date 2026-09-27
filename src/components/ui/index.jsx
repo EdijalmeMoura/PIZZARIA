@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { C } from "../../constants/theme.js";
 import { useBrandLogo } from "../../contexts/BrandLogoContext.jsx";
+import { studioProductPhotos } from "../../utils/studioProductPhotos.js";
 
 const IMG_BASE = "/img/products";
 
@@ -33,10 +34,23 @@ export function Logo({ size = 44, glow = false, style = {}, withText = false }) 
 export function SmartImg({ id, emoji, alt = "", fs = 34, className = "", style = {}, file, v = 0 }) {
   const [stage, setStage] = useState(0);
   useEffect(() => setStage(0), [file, id, v]);
-  const srcFile = file ? (/^https?:\/\//i.test(file) ? file : `/img-up/${file}?v=${v}`) : null;
-  const srcFallback = `${IMG_BASE}/${id}.jpg?v=${v}`;
-  const src = stage === 0 && srcFile ? srcFile : srcFallback;
-  if (stage >= 2) {
+  const isRemoteFile = typeof file === "string" && /^https?:\/\//i.test(file);
+  const srcFile = file
+    ? isRemoteFile
+      ? file
+      : file.startsWith("/")
+        ? `${file}${file.includes("?") ? "&" : "?"}v=${v}`
+        : `/img-up/${file}?v=${v}`
+    : null;
+  const hasAdminUpload = Boolean(file && !isRemoteFile && !file.startsWith("/img/products/studio/"));
+  const sources = [
+    ...(hasAdminUpload && srcFile ? [srcFile] : []),
+    ...(studioProductPhotos[id] ? [studioProductPhotos[id]] : []),
+    ...(!hasAdminUpload && srcFile ? [srcFile] : []),
+    `${IMG_BASE}/${id}.jpg?v=${v}`,
+  ];
+
+  if (stage >= sources.length) {
     return (
       <span className={`flex items-center justify-center w-full h-full ${className}`} style={{ background: `linear-gradient(135deg, ${C.orange}2e, ${C.gray800})`, ...style }}>
         <span style={{ fontSize: fs, lineHeight: 1 }}>{emoji}</span>
@@ -44,10 +58,17 @@ export function SmartImg({ id, emoji, alt = "", fs = 34, className = "", style =
     );
   }
   return (
-    <img src={src} alt={alt} loading="lazy" draggable={false} onError={() => setStage((s) => (s === 0 && srcFile ? 1 : 2))} className={`sarro-img ${className}`} style={style} />
+    <img
+      src={sources[stage]}
+      alt={alt}
+      loading="lazy"
+      draggable={false}
+      onError={() => setStage((current) => Math.min(current + 1, sources.length))}
+      className={`sarro-img ${className}`}
+      style={style}
+    />
   );
 }
-
 export function Badge({ children, color = C.orange, text = C.black }) {
   return <span style={{ background: color, color: text, borderRadius: 6, padding: "2px 6px", fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>{children}</span>;
 }
