@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { C } from "../../constants/theme.js";
 import { api } from "../../utils/api.js";
 import { Card, Btn } from "../ui/index.jsx";
@@ -20,6 +20,8 @@ export default function AdminStoreCard({ store }) {
   const [minOrder, setMinOrder] = useState(String(st.minOrder ?? 0).replace(".", ","));
   const [eta, setEta] = useState(st.eta || "A definir");
   const [busy, setBusy] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const logoInputRef = useRef(null);
   const settings = store.settings || {};
   const weeklyHoursSnapshot = JSON.stringify(settings.weeklyHours || {});
 
@@ -78,6 +80,61 @@ export default function AdminStoreCard({ store }) {
     setBusy(false);
   };
 
+  const uploadLogo = async (file) => {
+    if (!file) return;
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      store.toast("Escolha um arquivo PNG, JPG ou WebP.");
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      store.toast("A logomarca precisa ter até 3MB.");
+      return;
+    }
+
+    setLogoBusy(true);
+    try {
+      const response = await fetch("/api/settings/logo", {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        credentials: "same-origin",
+        body: file,
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Falha ao enviar a logomarca.");
+      await store.refreshSettings?.();
+      store.toast("Logomarca atualizada no site ✓");
+    } catch (error) {
+      store.toast(error.message);
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const handleLogoFile = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    uploadLogo(file);
+  };
+
+  const restoreDefaultLogo = async () => {
+    setLogoBusy(true);
+    try {
+      const response = await fetch("/api/settings/logo", {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Falha ao restaurar a logomarca.");
+      await store.refreshSettings?.();
+      store.toast("Logomarca padrão restaurada ✓");
+    } catch (error) {
+      store.toast(error.message);
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
   const manualOpen = st.manualOpen !== false;
   const fieldStyle = { background: C.black, border: `1px solid ${C.gray800}`, color: C.white, fontSize: 12.5 };
   return (
@@ -89,6 +146,44 @@ export default function AdminStoreCard({ store }) {
       <Row label="Nome da Loja"><input value={name} onChange={(e) => setName(e.target.value)} className="rounded-lg px-2.5 py-1.5 outline-none text-right" style={{ ...fieldStyle, width: 230 }} /></Row>
       <Row label="WhatsApp"><input value={wa} onChange={(e) => setWa(e.target.value)} className="rounded-lg px-2.5 py-1.5 outline-none text-right" style={{ ...fieldStyle, width: 150 }} /></Row>
       <Row label="Endereço"><input value={addr} onChange={(e) => setAddr(e.target.value)} className="rounded-lg px-2.5 py-1.5 outline-none text-right" style={{ ...fieldStyle, width: 260 }} /></Row>
+
+      <section className="rounded-xl p-3 mt-3" style={{ background: C.gray900, border: `1px solid ${C.gray800}` }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center justify-center rounded-xl p-2 shrink-0" style={{ width: 132, height: 76, background: C.black, border: `1px solid ${C.gray800}` }}>
+              <img
+                src={settings.logo || "/assets/mil-grau-logo.svg"}
+                alt="Prévia da logomarca da loja"
+                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+              />
+            </div>
+            <div>
+              <div style={{ color: C.white, fontSize: 13, fontWeight: 900 }}>🖼️ Logomarca do site</div>
+              <div style={{ color: "#999", fontSize: 11, lineHeight: 1.45, marginTop: 3 }}>
+                PNG, JPG ou WebP · até 3MB. A alteração aparece no cardápio e nos painéis.
+              </div>
+            </div>
+          </div>
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            aria-label="Selecionar arquivo da logomarca"
+            className="hidden"
+            onChange={handleLogoFile}
+          />
+          <div className="flex gap-2 flex-wrap">
+            <Btn small disabled={logoBusy} onClick={() => logoInputRef.current?.click()}>
+              {logoBusy ? "Enviando…" : "Enviar logomarca"}
+            </Btn>
+            {settings.logo && (
+              <Btn small variant="dark" disabled={logoBusy} onClick={restoreDefaultLogo}>
+                Restaurar padrão
+              </Btn>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-xl p-3 mt-3" style={{ background: C.gray900, border: `1px solid ${C.gray800}` }}>
         <div style={{ color: C.white, fontSize: 13, fontWeight: 900 }}>🕒 Horários de funcionamento</div>

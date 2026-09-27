@@ -548,6 +548,9 @@ export function getSettings() {
 
   return {
     storeName: s.store_name,
+    logo: /^brand-logo-[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}\.(?:png|jpg|webp)$/i.test(s.brand_logo || "")
+      ? `/img-up/${encodeURIComponent(s.brand_logo)}`
+      : "",
     // `open` remains the customer-facing, effective status. `manualOpen` is
     // the separate pause switch controlled by the store team.
     open: businessHours.open,

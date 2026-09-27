@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { C } from "../../constants/theme.js";
+import { useBrandLogo } from "../../contexts/BrandLogoContext.jsx";
 
 const IMG_BASE = "/img/products";
 
 export function Logo({ size = 44, glow = false, style = {}, withText = false }) {
+  const customLogo = useBrandLogo();
+  const [customLogoFailed, setCustomLogoFailed] = useState(false);
+  useEffect(() => setCustomLogoFailed(false), [customLogo]);
   const width = withText ? size * 1.22 : size;
+  const defaultLogo = withText ? "/assets/mil-grau-logo.svg" : "/assets/mil-grau-mark.svg";
   return (
     <img
-      src={withText ? "/assets/mil-grau-logo.svg" : "/assets/mil-grau-mark.svg"}
-      alt="Mil Grau Pizzaria — Forno a Lenha"
+      src={customLogo && !customLogoFailed ? customLogo : defaultLogo}
+      onError={customLogo ? () => setCustomLogoFailed(true) : undefined}
+      alt="Logomarca da pizzaria"
       width={width}
       height={size}
       draggable={false}

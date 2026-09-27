@@ -2100,6 +2100,75 @@ const UPLOAD_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR, "up
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 app.use("/img-up", express.static(UPLOAD_DIR, { maxAge: "1h" }));
 
+const BRAND_LOGO_FILE_RE = /^brand-logo-[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}\.(?:png|jpg|webp)$/i;
+const imageExtensionFromBytes = (buf) => {
+  if (buf.length >= 8 && buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "png";
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "jpg";
+  if (buf.length >= 12 && buf.subarray(0, 4).toString("latin1") === "RIFF" && buf.subarray(8, 12).toString("latin1") === "WEBP") return "webp";
+  return null;
+};
+
+app.post("/api/settings/logo", requireRole("ADMIN", "GERENTE"), (req, res) => {
+  const contentType = String(req.headers["content-type"] || "").split(";")[0].toLowerCase();
+  const declaredExt = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" }[contentType];
+  if (!declaredExt) return res.status(400).json({ error: "Envie a logomarca em PNG, JPG ou WebP." });
+
+  const chunks = [];
+  let size = 0;
+  let rejected = false;
+  let aborted = false;
+  req.on("aborted", () => { aborted = true; });
+  req.on("data", (chunk) => {
+    if (rejected) return;
+    size += chunk.length;
+    if (size > 3 * 1024 * 1024) {
+      rejected = true;
+      chunks.length = 0;
+      res.status(413).json({ error: "A logomarca precisa ter até 3MB." });
+      return;
+    }
+    chunks.push(chunk);
+  });
+  req.on("end", () => {
+    if (rejected || aborted) return;
+    try {
+      const buffer = Buffer.concat(chunks);
+      const actualExt = imageExtensionFromBytes(buffer);
+      if (!actualExt || actualExt !== declaredExt) {
+        return res.status(400).json({ error: "O arquivo não corresponde a uma imagem PNG, JPG ou WebP válida." });
+      }
+
+      const fileName = `brand-logo-${crypto.randomUUID()}.${actualExt}`;
+      fs.writeFileSync(path.join(UPLOAD_DIR, fileName), buffer);
+      const previousLogo = getSetting("brand_logo") || "";
+      setSetting("brand_logo", fileName);
+      if (BRAND_LOGO_FILE_RE.test(previousLogo) && previousLogo !== fileName) {
+        fs.rmSync(path.join(UPLOAD_DIR, previousLogo), { force: true });
+      }
+      audit(req.user.username, "logomarca_atualizada", fileName);
+      broadcast();
+      res.json({ ok: true, logo: `/img-up/${fileName}` });
+    } catch (error) {
+      logger.error("falha no upload da logomarca", { error: error.message });
+      if (!res.headersSent) res.status(500).json({ error: "Falha ao salvar a logomarca." });
+    }
+  });
+  req.on("error", () => {
+    if (!aborted && !res.headersSent) res.status(500).json({ error: "Falha ao enviar a logomarca." });
+  });
+});
+
+app.delete("/api/settings/logo", requireRole("ADMIN", "GERENTE"), (req, res) => {
+  const previousLogo = getSetting("brand_logo") || "";
+  setSetting("brand_logo", "");
+  if (BRAND_LOGO_FILE_RE.test(previousLogo)) {
+    fs.rmSync(path.join(UPLOAD_DIR, previousLogo), { force: true });
+  }
+  audit(req.user.username, "logomarca_redefinida", "Logomarca padrão restaurada");
+  broadcast();
+  res.json({ ok: true, logo: "" });
+});
+
 app.post("/api/products/:id/image", requireRole("ADMIN", "GERENTE"), (req, res) => {
   const p = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id);
   if (!p) return res.status(404).json({ error: "Produto não encontrado." });

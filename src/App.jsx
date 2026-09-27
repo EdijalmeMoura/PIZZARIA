@@ -5,6 +5,7 @@ import { DEFAULT_WEEKLY_HOURS, getBusinessHoursStatus, getClosedStoreMessage } f
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts.js";
 import { extractTableNumber, getOrderTableNumber, buildMesaIndex } from "./utils/mesa.js";
 import ServiceChargeCard from "./components/admin/ServiceChargeCard.jsx";
+import { BrandLogoProvider, useBrandLogo } from "./contexts/BrandLogoContext.jsx";
 // Lazy load heavy panels for code splitting
 const AdminTablesModular = React.lazy(() => import("./components/tables/AdminTables.jsx"));
 const TrackScreenModular = React.lazy(() => import("./components/track/TrackScreen.jsx"));
@@ -557,11 +558,16 @@ const elapsed = (from, now) => {
 };
 
 function Logo({ size = 44, glow = false, style = {}, withText = false }) {
+  const customLogo = useBrandLogo();
+  const [customLogoFailed, setCustomLogoFailed] = useState(false);
+  useEffect(() => setCustomLogoFailed(false), [customLogo]);
   const width = withText ? size * 1.22 : size;
+  const defaultLogo = withText ? "/assets/mil-grau-logo.svg" : "/assets/mil-grau-mark.svg";
   return (
     <img
-      src={withText ? "/assets/mil-grau-logo.svg" : "/assets/mil-grau-mark.svg"}
-      alt="Mil Grau Pizzaria — Forno a Lenha"
+      src={customLogo && !customLogoFailed ? customLogo : defaultLogo}
+      onError={customLogo ? () => setCustomLogoFailed(true) : undefined}
+      alt="Logomarca da pizzaria"
       width={width}
       height={size}
       draggable={false}
@@ -4596,6 +4602,20 @@ export default function App() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    const icon = document.querySelector('link[rel~="icon"]');
+    if (!icon) return;
+    if (!icon.dataset.defaultHref) icon.dataset.defaultHref = icon.getAttribute("href") || "/assets/mil-grau-mark.svg";
+    if (settings.logo) {
+      icon.href = settings.logo;
+      const extension = settings.logo.split("?")[0].split(".").pop()?.toLowerCase();
+      icon.type = extension === "webp" ? "image/webp" : extension === "jpg" ? "image/jpeg" : "image/png";
+    } else {
+      icon.href = icon.dataset.defaultHref;
+      icon.type = "image/svg+xml";
+    }
+  }, [settings.logo]);
+
   // Voltar/avançar do navegador troca de painel sem recarregar a página
   useEffect(() => {
     const onPop = () => { setRole(pathRole()); setLoginFor(null); };
@@ -4919,14 +4939,21 @@ export default function App() {
   // Atalhos teclado Sprint6 (M=mesas, E=expedição, C=cozinha, Ctrl+K busca)
   useKeyboardShortcuts({ store: { role, settings, setTab }, goRole });
 
-  if (!ready) return <Splash error={bootError} onRetry={load} />;
+  if (!ready) {
+    return (
+      <BrandLogoProvider logo={settings.logo}>
+        <Splash error={bootError} onRetry={load} />
+      </BrandLogoProvider>
+    );
+  }
 
   const gate = STAFF_GATE[role];
   const allowed = !gate || (me && gate.includes(me.role));
 
   return (
-    <div style={{ background: C.black, minHeight: "100vh", fontFamily: font.body, color: C.white }} className="overflow-x-hidden">
-      <style>{css}</style>
+    <BrandLogoProvider logo={settings.logo}>
+      <div style={{ background: C.black, minHeight: "100vh", fontFamily: font.body, color: C.white }} className="overflow-x-hidden">
+        <style>{css}</style>
 
       {/* Barra superior de atalhos da equipe:
           - Oculta no cardápio do cliente (tela 100% limpa para pedidos)
@@ -5014,8 +5041,9 @@ export default function App() {
         </>
       )}
 
-      <Toast msg={toastMsg} />
-      <Confetti on={confetti} />
-    </div>
+        <Toast msg={toastMsg} />
+        <Confetti on={confetti} />
+      </div>
+    </BrandLogoProvider>
   );
 }
